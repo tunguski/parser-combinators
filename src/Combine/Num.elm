@@ -76,7 +76,7 @@ flip f b a =
 
 joinBoth : Parser s (a -> b) -> Parser s a -> Parser s b
 joinBoth =
-    flip andMap
+    \b a -> andMap a b
 
 
 {-| Parse an integer.

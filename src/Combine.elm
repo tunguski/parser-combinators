@@ -561,7 +561,7 @@ flip f b a =
 -}
 andMap : Parser s a -> Parser s (a -> b) -> Parser s b
 andMap rp lp =
-    flip andThen lp (\a -> map a rp)
+    andThen (\a -> map a rp) lp
 
 
 {-| Run a list of parsers in sequence, accumulating the results. The
@@ -970,7 +970,7 @@ sepBy sep p =
 joinR : Parser s x -> Parser s a -> Parser s a
 joinR lp rp =
     lp
-        |> map (flip always)
+        |> map (\b a -> always a b)
         |> andMap rp
 
 

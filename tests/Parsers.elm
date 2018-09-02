@@ -1,4 +1,4 @@
-module Parsers exposing (..)
+module Parsers exposing (calcSuite, manyTillSuite, sepEndBy1Suite, sepEndBySuite, sequenceSuite, successful)
 
 import Calc exposing (calc)
 import Combine exposing (..)
