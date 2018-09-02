@@ -1,6 +1,6 @@
 {
     "type": "package",
-    "name": "elm-community/parser-combinators",
+    "name": "tunguski/parser-combinators",
     "summary": "A parser combinator library",
     "license": "BSD-3-Clause",
     "version": "2.0.0",
