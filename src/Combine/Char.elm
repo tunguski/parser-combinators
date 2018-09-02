@@ -7,12 +7,16 @@ everything that you can do with this module by using `Combine.regex`,
 `Combine.string` or `Combine.primitive` and, in general, those will be
 much faster.
 
+
 # Parsers
+
 @docs satisfy, char, anyChar, oneOf, noneOf, space, tab, newline, crlf, eol, lower, upper, digit, octDigit, hexDigit
+
 -}
 
 import Char
-import Combine exposing (Parser, primitive, regex, (<?>), (<$), (<|>))
+import Combine exposing (..)
+import Debug exposing (toString)
 import String
 
 
@@ -33,15 +37,16 @@ satisfy pred =
                 message =
                     "could not satisfy predicate"
             in
-                case String.uncons stream.input of
-                    Just ( h, rest ) ->
-                        if pred h then
-                            ( state, { stream | input = rest, position = stream.position + 1 }, Ok h )
-                        else
-                            ( state, stream, Err [ message ] )
+            case String.uncons stream.input of
+                Just ( h, rest ) ->
+                    if pred h then
+                        ( state, { stream | input = rest, position = stream.position + 1 }, Ok h )
 
-                    Nothing ->
+                    else
                         ( state, stream, Err [ message ] )
+
+                Nothing ->
+                    ( state, stream, Err [ message ] )
 
 
 {-| Parse an exact character match.
@@ -55,7 +60,8 @@ satisfy pred =
 -}
 char : Char -> Parser s Char
 char c =
-    satisfy ((==) c) <?> ("expected " ++ toString c)
+    satisfy ((==) c)
+        |> mapError (always [ "expected " ++ toString c ])
 
 
 {-| Parse any character.
@@ -69,7 +75,8 @@ char c =
 -}
 anyChar : Parser s Char
 anyChar =
-    satisfy (always True) <?> "expected any character"
+    satisfy (always True)
+        |> mapError (always [ "expected any character" ])
 
 
 {-| Parse a character from the given list.
@@ -83,7 +90,15 @@ anyChar =
 -}
 oneOf : List Char -> Parser s Char
 oneOf cs =
-    satisfy (flip List.member cs) <?> ("expected one of " ++ toString cs)
+    satisfy (\a -> List.member a cs)
+        |> mapError (always [ "expected one of " ++ toString cs ])
+
+
+joinL : Parser s a -> Parser s x -> Parser s a
+joinL lp rp =
+    lp
+        |> map always
+        |> andMap rp
 
 
 {-| Parse a character that is not in the given list.
@@ -97,74 +112,84 @@ oneOf cs =
 -}
 noneOf : List Char -> Parser s Char
 noneOf cs =
-    satisfy (not << flip List.member cs) <?> ("expected none of " ++ toString cs)
+    satisfy (not << (\a -> List.member a cs))
+        |> mapError (always [ "expected none of " ++ toString cs ])
 
 
 {-| Parse a space character.
 -}
 space : Parser s Char
 space =
-    satisfy ((==) ' ') <?> "expected space"
+    satisfy ((==) ' ')
+        |> mapError (always [ "expected space" ])
 
 
 {-| Parse a `\t` character.
 -}
 tab : Parser s Char
 tab =
-    satisfy ((==) '\t') <?> "expected tab"
+    satisfy ((==) '\t')
+        |> mapError (always [ "expected tab" ])
 
 
 {-| Parse a `\n` character.
 -}
 newline : Parser s Char
 newline =
-    satisfy ((==) '\n') <?> "expected newline"
+    satisfy ((==) '\n')
+        |> mapError (always [ "expected newline" ])
 
 
 {-| Parse a `\r\n` sequence, returning a `\n` character.
 -}
 crlf : Parser s Char
 crlf =
-    '\n' <$ regex "\x0D\n" <?> "expected crlf"
+    joinL (succeed '\n') (regex "\u{000D}\n")
+        |> mapError (always [ "expected crlf" ])
 
 
 {-| Parse an end of line character or sequence, returning a `\n` character.
 -}
 eol : Parser s Char
 eol =
-    newline <|> crlf
+    or newline crlf
 
 
 {-| Parse any lowercase character.
 -}
 lower : Parser s Char
 lower =
-    satisfy Char.isLower <?> "expected a lowercase character"
+    satisfy Char.isLower
+        |> mapError (always [ "expected a lowercase character" ])
 
 
 {-| Parse any uppercase character.
 -}
 upper : Parser s Char
 upper =
-    satisfy Char.isUpper <?> "expected an uppercase character"
+    satisfy Char.isUpper
+        |> mapError (always [ "expected a uppercase character" ])
 
 
 {-| Parse any base 10 digit.
 -}
 digit : Parser s Char
 digit =
-    satisfy Char.isDigit <?> "expected a digit"
+    satisfy Char.isDigit
+        |> mapError (always [ "expected a digit" ])
 
 
 {-| Parse any base 8 digit.
 -}
 octDigit : Parser s Char
 octDigit =
-    satisfy Char.isOctDigit <?> "expected an octal digit"
+    satisfy Char.isOctDigit
+        |> mapError (always [ "expected an octal digit" ])
 
 
 {-| Parse any base 16 digit.
 -}
 hexDigit : Parser s Char
 hexDigit =
-    satisfy Char.isHexDigit <?> "expected a hexadecimal digit"
+    satisfy Char.isHexDigit
+        |> mapError (always [ "expected a hexadecimal digit" ])

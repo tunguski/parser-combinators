@@ -3,6 +3,7 @@ module Calc exposing (calc)
 {-| An example parser that computes arithmetic expressions.
 
 @docs calc
+
 -}
 
 import Combine exposing (..)
@@ -31,7 +32,7 @@ expr =
         go () =
             chainl addop term
     in
-        lazy go
+    lazy go
 
 
 term : Parser s Int
@@ -40,7 +41,7 @@ term =
         go () =
             chainl mulop factor
     in
-        lazy go
+    lazy go
 
 
 factor : Parser s Int

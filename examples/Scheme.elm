@@ -1,4 +1,4 @@
-module Scheme exposing (..)
+module Scheme exposing (E(..), bool, char, comment, expr, float, formatError, identifier, int, list, parse, program, quasiquote, quote, str, unquote, unquoteSplice, vector)
 
 import Combine exposing (..)
 import Combine.Char exposing (anyChar)
@@ -38,9 +38,9 @@ bool =
                 , False <$ string "#f"
                 ]
     in
-        EBool
-            <$> boolLiteral
-            <?> "boolean literal"
+    EBool
+        <$> boolLiteral
+        <?> "boolean literal"
 
 
 int : Parser s E
@@ -68,9 +68,9 @@ char =
                     , anyChar
                     ]
     in
-        EChar
-            <$> charLiteral
-            <?> "character literal"
+    EChar
+        <$> charLiteral
+        <?> "character literal"
 
 
 str : Parser s E
@@ -110,7 +110,7 @@ identifier =
         identifierRe =
             initialRe ++ subsequentRe
     in
-        EIdentifier <$> regex identifierRe <?> "identifier"
+    EIdentifier <$> regex identifierRe <?> "identifier"
 
 
 list : Parser s E
@@ -176,7 +176,7 @@ expr =
                     , comment
                     ]
             in
-                whitespace *> choice parsers <* whitespace
+            whitespace *> choice parsers <* whitespace
 
 
 program : Parser s (List E)
@@ -205,15 +205,15 @@ formatError ms stream =
         padding =
             location.column + separatorOffset + 2
     in
-        "Parse error around line:\n\n"
-            ++ toString location.line
-            ++ separator
-            ++ location.source
-            ++ "\n"
-            ++ String.padLeft padding ' ' "^"
-            ++ "\nI expected one of the following:\n"
-            ++ expectationSeparator
-            ++ String.join expectationSeparator ms
+    "Parse error around line:\n\n"
+        ++ toString location.line
+        ++ separator
+        ++ location.source
+        ++ "\n"
+        ++ String.padLeft padding ' ' "^"
+        ++ "\nI expected one of the following:\n"
+        ++ expectationSeparator
+        ++ String.join expectationSeparator ms
 
 
 parse : String -> Result String (List E)

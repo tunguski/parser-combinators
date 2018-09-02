@@ -1,4 +1,4 @@
-module Python exposing (..)
+module Python exposing (CompoundStatement(..), Expression(..), Indentation, Statement(..), addop, andExpr, andop, app, arithExpr, assertStmt, assignStmt, assignop, atom, attribute, block, blockStmt, bool, breakStmt, cmpExpr, cmpop, commaSep, comment, compoundStmt, continueStmt, dedent, delStmt, dict, dictSep, dropWhile, expr, exprList, exprStmt, factor, float, forStmt, formatError, funcStmt, globalStmt, identifier, importAs, importFromStmt, importStmt, indent, indentation, initIndentation, int, keyword, list, listSep, mulop, notExpr, orop, parse, passStmt, printStmt, program, raiseStmt, returnStmt, set, simpleStmt, spaces, stmt, str, term, test, token, tuple, whileStmt, whitespace, withStmt)
 
 import Combine exposing (..)
 import Combine.Char exposing (..)
@@ -71,6 +71,7 @@ dropWhile p xs =
         x :: ys ->
             if p x then
                 dropWhile p ys
+
             else
                 xs
 
@@ -163,12 +164,12 @@ commaSep =
 
 dictSep : Parser s String
 dictSep =
-    regex ":[ \t\x0D\n]*"
+    regex ":[ \t\u{000D}\n]*"
 
 
 listSep : Parser s String
 listSep =
-    regex ",[ \t\x0D\n]*"
+    regex ",[ \t\u{000D}\n]*"
 
 
 list : Parser s Expression
@@ -194,7 +195,7 @@ dict =
     lazy <|
         \() ->
             EDict
-                <$> brackets (sepBy listSep ((,) <$> expr <* dictSep <*> expr))
+                <$> brackets (sepBy listSep ((\a b -> ( a, b )) <$> expr <* dictSep <*> expr))
                 <?> "dictionary"
 
 
@@ -342,7 +343,7 @@ raiseStmt =
 importAs : Parser s (List ( Expression, Maybe Expression ))
 importAs =
     sepBy commaSep <|
-        (,)
+        (\a b -> ( a, b ))
             <$> choice [ attribute, identifier ]
             <*> maybe (whitespace *> keyword "as" *> identifier)
 
@@ -398,14 +399,15 @@ indentation p =
                         indent =
                             String.length s
                     in
-                        if indent == current then
-                            succeed ()
-                        else
-                            fail ("expected " ++ toString current ++ " spaces of indentation")
+                    if indent == current then
+                        succeed ()
+
+                    else
+                        fail ("expected " ++ toString current ++ " spaces of indentation")
             in
-                spaces >>= validate
+            spaces >>= validate
     in
-        withState skipIndent *> p
+    withState skipIndent *> p
 
 
 indent : Parser Indentation ()
@@ -420,17 +422,18 @@ indent =
                                 indent =
                                     String.length s
                             in
-                                case stack of
-                                    [] ->
-                                        fail "negative indentation"
+                            case stack of
+                                [] ->
+                                    fail "negative indentation"
 
-                                    current :: _ ->
-                                        if indent > current then
-                                            putState (indent :: stack)
-                                        else
-                                            fail "expected indentation"
+                                current :: _ ->
+                                    if indent > current then
+                                        putState (indent :: stack)
+
+                                    else
+                                        fail "expected indentation"
             in
-                lookAhead <| spaces >>= push
+            lookAhead <| spaces >>= push
 
 
 dedent : Parser Indentation ()
@@ -445,14 +448,14 @@ dedent =
                                 rem =
                                     dropWhile ((/=) (String.length s)) stack
                             in
-                                case rem of
-                                    _ :: _ ->
-                                        putState rem
+                            case \dividend divisor -> remainderBy divisor dividend of
+                                _ :: _ ->
+                                    putState (\dividend divisor -> remainderBy divisor dividend)
 
-                                    _ ->
-                                        fail "unindent does not match any outer indentation level"
+                                _ ->
+                                    fail "unindent does not match any outer indentation level"
             in
-                spaces >>= pop
+            spaces >>= pop
 
 
 block : Parser Indentation (List CompoundStatement)
@@ -499,7 +502,7 @@ simpleStmt =
                         , exprStmt
                         ]
             in
-                indentation (CSimple <$> sepBy (string ";" <* whitespace) stmt <* (() <$ eol <|> end))
+            indentation (CSimple <$> sepBy (string ";" <* whitespace) stmt <* (() <$ eol <|> end))
 
 
 whileStmt : Parser s (List CompoundStatement -> CompoundStatement)
@@ -541,7 +544,7 @@ compoundStmt =
                         , funcStmt
                         ]
             in
-                choice parsers
+            choice parsers
 
 
 stmt : Parser Indentation CompoundStatement
@@ -577,15 +580,15 @@ formatError ms stream =
         padding =
             location.column + separatorOffset + 2
     in
-        "Parse error around line:\n\n"
-            ++ toString location.line
-            ++ separator
-            ++ location.source
-            ++ "\n"
-            ++ String.padLeft padding ' ' "^"
-            ++ "\nI expected one of the following:\n"
-            ++ expectationSeparator
-            ++ String.join expectationSeparator ms
+    "Parse error around line:\n\n"
+        ++ toString location.line
+        ++ separator
+        ++ location.source
+        ++ "\n"
+        ++ String.padLeft padding ' ' "^"
+        ++ "\nI expected one of the following:\n"
+        ++ expectationSeparator
+        ++ String.join expectationSeparator ms
 
 
 parse : String -> Result String (List CompoundStatement)
